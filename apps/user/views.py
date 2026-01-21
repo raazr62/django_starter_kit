@@ -8,7 +8,7 @@ from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from .authentication import CookieJWTAuthentication
 from rest_framework.validators import ValidationError
-
+from rest_framework.response import Response
 
 # Use hybrid response utility
 from .utils import create_hybrid_auth_response
@@ -29,7 +29,7 @@ from .serializers import (
 from apps.utils.helpers import success, error
 
 
-# Create your views here.
+# Singup
 class SignUpView(APIView):
     permission_classes = []
 
@@ -40,24 +40,14 @@ class SignUpView(APIView):
         if serializer.is_valid():
             serializer.save()
             result = serializer.data
-            
-            
-            tokens = {
-                'access': result['access'],
-                'refresh': result['refresh']
-            }
-            
-            response = create_hybrid_auth_response(
-                data=result['user'],
-                tokens=tokens,
-                request=request,
-                message="Signup successful.",
-                status_code=status.HTTP_201_CREATED
-            )
-            
-            return response
+            return Response({
+                "status": "success",
+                "message": "Signup successful.",
+                "data": result['user'],
+            })
         raise ValidationError(serializer.errors)
 
+# Signin
 class SignInView(APIView):
 
     permission_classes = []
@@ -70,64 +60,33 @@ class SignInView(APIView):
             result = serializer.data
             
             
-            tokens = {
-                'access': result['access'],
-                'refresh': result['refresh']
-            }
-            
-            response = create_hybrid_auth_response(
-                data=result['user'],
-                tokens=tokens,
-                request=request,
-                message="Signin successful.",
-                status_code=status.HTTP_200_OK
-            )
-            
-            return response
+            return Response({
+                "status": "success",
+                "message": "Signin successful.",
+                "data": result['user'],
+                "access_token": result['access'],
+                "refresh_token": result['refresh'],
+
+            })
         raise ValidationError(serializer.errors)
 
-
+# Signout
 class SignOutView(APIView):
-    """
-    Hybrid SignOut View
-    
-    Supports both Web and Mobile clients:
-    - Web: Blacklists token from cookies, clears cookies
-    - Mobile: Blacklists token from request body
-    """
-    
     permission_classes = [IsAuthenticated]
-    authentication_classes = [CookieJWTAuthentication]
+    authentication_classes = [JWTAuthentication]
 
     def post(self, request):
-        # Get tokens from request body or cookies
-        data = request.data.copy()
-        if 'refresh_token' not in data and 'refresh_token' in request.COOKIES:
-            data['refresh_token'] = request.COOKIES['refresh_token']
-        if 'access_token' not in data and 'access_token' in request.COOKIES:
-            data['access_token'] = request.COOKIES['access_token']
-        
-        serializer = SignOutSerializer(data=data)
+        serializer = SignOutSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            
-            # Create response
-            response = success(data=[], message="Logout successful.", status_code=status.HTTP_200_OK)
-            
-            # Clear cookies for web clients
-            is_web = getattr(request, 'is_web_client', True)
-            if is_web or 'access_token' in request.COOKIES:
-                from .utils import clear_auth_cookies
-                clear_auth_cookies(response)
-            
-            return response
-        return error(message="Logout failed.", status_code=status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
+            return Response({'status':status.HTTP_200_OK, 'success':True, 'message': 'Logout successful.', 'data': serializer.data}, status.HTTP_200_OK)
+        return Response({'status':status.HTTP_400_BAD_REQUEST, 'success':False, 'message': 'Logout failed.', 'data': serializer.errors}, status.HTTP_400_BAD_REQUEST)
 
-
+# Change Password
 class ChangePasswordView(APIView):
     
     permission_classes = [IsAuthenticated]
-    authentication_classes = [CookieJWTAuthentication]
+    authentication_classes = [JWTAuthentication]
 
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
@@ -136,6 +95,7 @@ class ChangePasswordView(APIView):
             return success(data=[], message="Password change successfully.", status_code=status.HTTP_200_OK)
         raise ValidationError(serializer.errors)
 
+# Forgot Password (OTP Send)
 class SendOTPView(APIView):
     permission_classes = []
 
@@ -148,29 +108,7 @@ class SendOTPView(APIView):
             errors["error"] = errors.pop("email")
         raise ValidationError(errors)
 
-class ResendOTPView(APIView):
-    permission_classes = []
-
-    def post(self, request):
-        serializer = ResendOTPSerializer(data=request.data)
-        if serializer.is_valid():
-            return success(data=[], message="OTP send to mail successfully.", status_code=status.HTTP_200_OK)
-        errors = serializer.errors
-        if "email" in errors:
-            errors["error"] = errors.pop("email")
-        raise ValidationError(errors)
-
-class VerifyOTPView(APIView):
-    permission_classes = []
-
-    def post(self, request):
-        serializer = VerifyOTPSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return success(data=[], message="OTP verify is successfully.", status_code=status.HTTP_200_OK)
-        return error(message="OTP verify is failed.", status_code=status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
-
-
+# Reset Password (OTP Verify and Reset)
 class ResetPasswordView(APIView):
     permission_classes = []
 
@@ -184,8 +122,31 @@ class ResetPasswordView(APIView):
             errors["error"] = errors.pop("non_field_errors")
         return error(message="Password reset failed.", status_code=status.HTTP_400_BAD_REQUEST, errors=errors)
 
+# Resend OTP
+class ResendOTPView(APIView):
+    permission_classes = []
 
+    def post(self, request):
+        serializer = ResendOTPSerializer(data=request.data)
+        if serializer.is_valid():
+            return success(data=[], message="OTP send to mail successfully.", status_code=status.HTTP_200_OK)
+        errors = serializer.errors
+        if "email" in errors:
+            errors["error"] = errors.pop("email")
+        raise ValidationError(errors)
 
+# Verify OTP (with purpose)
+class VerifyOTPView(APIView):
+    permission_classes = []
+
+    def post(self, request):
+        serializer = VerifyOTPSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return success(data=[], message="OTP verify is successfully.", status_code=status.HTTP_200_OK)
+        return error(message="OTP verify is failed.", status_code=status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
+
+# Profile Views
 class UpdataProfileAvatarView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [CookieJWTAuthentication]
@@ -199,7 +160,7 @@ class UpdataProfileAvatarView(APIView):
             return success(data=serializer.data, message="Profile avatar update successfully.", status_code=status.HTTP_200_OK)
         return error(message="Profile avatar update failed.", status_code=status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
 
-
+# Profile Update
 class UpdateProfileView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [CookieJWTAuthentication]
@@ -218,7 +179,7 @@ class UpdateProfileView(APIView):
             return success(data=serializer.data, message="Profile update successfully.", status_code=status.HTTP_200_OK)
         return error(message="Profile update failed.", status_code=status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
 
-
+# Profile Get
 class ProfileGet(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [CookieJWTAuthentication]
