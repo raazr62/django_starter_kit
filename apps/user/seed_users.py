@@ -4,20 +4,6 @@ from apps.user.models import User, UserProfile
 def seed_users():
     user_data = [
         {
-            "email": "rafi.cse.ahmed@gmail.com",
-            "avatar": "avatars/1.jpg",
-            "password": "12345678",
-            "is_staff": True,
-            "is_superuser": True,
-            "userprofile": {
-                "first_name": "Super",
-                "last_name": "Ahmed",
-                "phone": "+1234567890",
-                "accepted_terms": True,
-                "dob": "1990-01-01",
-            },
-        },
-        {
             "email": "admin@admin.com",
             "avatar": "avatars/1.jpg",
             "password": "12345678",

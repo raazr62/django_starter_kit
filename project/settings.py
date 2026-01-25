@@ -18,7 +18,8 @@ from django.templatetags.static import static
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from decouple import config
-
+from dotenv import load_dotenv
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -80,12 +81,15 @@ INSTALLED_APPS = [
     "debug_toolbar",
     "import_export",
     "corsheaders",
+    "nested_admin",
 
     # internal apps
     "apps.seeders",
     "apps.user",
     "apps.system_setting",
     "apps.cms",
+    "apps.subscription",
+    "apps.notification.apps.NotificationConfig",
 
 ]
 
@@ -136,28 +140,26 @@ MASTER_USER_EMAIL = "rafi.cse.ahmed@gmail.com"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Database configuration based on DEBUG mode
-if DEBUG:
-    # Development: Use SQLite
+DB_ENGINE = os.getenv("DB_ENGINE", "sqlite")
+
+if DB_ENGINE == "postgres":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("DB_NAME"),
+            "USER": os.getenv("DB_USER"),
+            "PASSWORD": os.getenv("DB_PASSWORD"),
+            "HOST": os.getenv("DB_HOST", "localhost"),
+            "PORT": os.getenv("DB_PORT", "5432"),
+        }
+    }
+else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
-else:
-    # Production: Use PostgreSQL with environment variables
-    DATABASES = {
-        "default": {
-            "ENGINE": config('DATABASE_ENGINE', default='django.db.backends.postgresql'),
-            "NAME": config('DATABASE_NAME', default='django_db'),
-            "USER": config('DATABASE_USER', default='django_user'),
-            "PASSWORD": config('DATABASE_PASSWORD', default='django_password'),
-            "HOST": config('DATABASE_HOST', default='db'),
-            "PORT": config('DATABASE_PORT', default='5432'),
-        }
-    }
-
 
 
 # Password validation
@@ -264,7 +266,16 @@ CSRF_COOKIE_HTTPONLY = True  # XSS protection
 SESSION_COOKIE_SAMESITE = 'None' if not DEBUG else 'Lax'  # 'None' requires HTTPS in production
 CSRF_COOKIE_SAMESITE = 'None' if not DEBUG else 'Lax'  # 'None' allows cross-origin
 
+import os
 
+
+# Cloudinary Settings
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME"),
+    "API_KEY": os.getenv("CLOUDINARY_API_KEY"),
+    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET"),
+}
+DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
 # email settings
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -296,3 +307,12 @@ from project import unfold_config
 UNFOLD = unfold_config.get_unfold_settings()
 
 
+# Celery Configuration
+CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://127.0.0.1:6379/0')
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='redis://127.0.0.1:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes

@@ -10,9 +10,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
 from .utils import generate_otp
 from django.utils import timezone
-from apps.utils.helpers import send_email, success, error
+from apps.utils.helpers import success, error
+from apps.utils.tasks import send_email_task
 from django.template.loader import render_to_string
-from .utils import get_user_agent_hash
+from .utils import get_user_agent_hash, get_cloudinary_url
 
 class CustomRefreshToken(RefreshToken):
 
@@ -38,6 +39,12 @@ class SignUpSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True)
     purpose = serializers.CharField(write_only=True)
     term_and_condition_accepted = serializers.BooleanField(required=True)
+    first_name = serializers.CharField(write_only=True, required=False)
+    last_name = serializers.CharField(write_only=True, required=False)
+    phone = serializers.CharField(write_only=True, required=False)
+    avatar = serializers.ImageField(write_only=True, required=False)
+    gender = serializers.CharField(write_only=True, required=False)
+    dob = serializers.DateField(write_only=True, required=False)
 
     def validate(self, attrs):
         email = attrs.get('email')
@@ -61,18 +68,56 @@ class SignUpSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['email', 'password',  'confirm_password', 'purpose', 'role', 'term_and_condition_accepted']
+        fields = [
+            'email', 
+            'password',  
+            'confirm_password', 
+            'purpose', 
+            'role', 
+            'term_and_condition_accepted',
+            'first_name',
+            'last_name',
+            'phone',
+            'avatar',
+            'gender',
+            'dob',
+
+        ]
 
     def create(self, validated_data):
         email = validated_data.pop('email')
         password = validated_data.pop('password')
         validated_data.pop('confirm_password')
-        purpose = validated_data.pop('purpose')
+        avatar = validated_data.pop('avatar', None)
+        first_name = validated_data.pop('first_name', '')
+        last_name = validated_data.pop('last_name', '')
+        gender = validated_data.pop('gender', None)
+        dob = validated_data.pop('dob', None)
+        phone = validated_data.pop('phone', None)
         
-        user = User.objects.create_user(email=email, password=password, **validated_data)
+        user = User.objects.create_user(
+            email=email,
+            password=password,
+            term_and_condition_accepted=validated_data.get('term_and_condition_accepted')
+            )
+
+        if avatar:
+            user.avatar = avatar
+            user.save()
         
 
-        otp_code = generate_otp()
+        # Create profile 
+        UserProfile.objects.create(
+            user=user,
+            first_name=first_name,
+            last_name=last_name, 
+            gender=gender, 
+            dob=dob,
+            phone=phone
+            )
+        
+        # otp_code = generate_otp()
+        otp_code = "123456"  # Hardcoded for testing
         print("OTP CODE:", otp_code)
         otp_hashed = make_password(otp_code)
 
@@ -82,14 +127,16 @@ class SignUpSerializer(serializers.ModelSerializer):
         OTP.objects.update_or_create(user=user, defaults={'otp': otp_hashed, 'is_verify': False, 'purpose': 'signup', 'created_at': timezone.now(), 'expires_at': expires_at})
         
         system_info = AboutSystem.objects.first()
-        html_content = render_to_string('email/otp_verification_template.html', {'otp_code': otp_code, 'system_info': system_info})
-        send_email(
+        html_content = render_to_string('email/signup_otp_verification_template.html', {'otp_code': otp_code, 'system_info': system_info})
+        
+        # Send email asynchronously using Celery
+        send_email_task.delay(
             subject='Verification OTP',
             body=f'Your OTP is {otp_code}. Expire in 3 minutes.',
             to_emails=[user.email,],
             from_email=settings.EMAIL_HOST_USER,
             html_body=html_content
-            )
+        )
     
         return user
     
@@ -230,8 +277,9 @@ class SendOTPSerializer(serializers.Serializer):
             user = User.objects.get(email=attrs['email'])
         except User.DoesNotExist:
             raise serializers.ValidationError({'error': 'User not found.'})
-
-        otp_code = generate_otp()
+        
+        # otp_code = generate_otp()
+        otp_code = "123456"  # Hardcoded for testing
         otp_hashed = make_password(otp_code)
         purpose = attrs['purpose']
 
@@ -240,10 +288,10 @@ class SendOTPSerializer(serializers.Serializer):
         OTP.objects.update_or_create(user=user, defaults={'otp': otp_hashed, 'is_verify': False, 'purpose': purpose, 'created_at': timezone.now(), 'expires_at': expires_at})
         
         system_info = AboutSystem.objects.first()
-        html_content = render_to_string('email/otp_verification_template.html', {'otp_code': otp_code, 'system_info': system_info})
+        html_content = render_to_string('email/forgetpass_otp_verification_template.html', {'otp_code': otp_code, 'system_info': system_info})
 
         try:
-          send_email(
+          send_email_task.delay(
                 subject='Verification OTP',
                 body=f'Your OTP is {otp_code}. Expire in 3 minutes.',
                 to_emails=[user.email,],
@@ -321,12 +369,11 @@ class ResendOTPSerializer(serializers.Serializer):
             otp_obj = OTP.objects.select_related('user').get(user=user, purpose=purpose)
             if otp_obj.is_verify:
                 raise serializers.ValidationError({'error': 'OTP already used.'})
-            if not otp_obj.is_expired():
-                raise serializers.ValidationError({'error': 'OTP still valid. Please wait for it to expire.'})
         except OTP.DoesNotExist:
             pass
-
-        otp_code = generate_otp()
+        
+        # otp_code = generate_otp()
+        otp_code = "123456"  # Hardcoded for testing
         otp_hashed = make_password(otp_code)
         purpose = attrs['purpose']
 
@@ -335,10 +382,10 @@ class ResendOTPSerializer(serializers.Serializer):
         OTP.objects.update_or_create(user=user, defaults={'otp': otp_hashed, 'is_verify': False, 'purpose': purpose, 'created_at': timezone.now(), 'expires_at': expires_at})
 
         system_info = AboutSystem.objects.first()
-        html_content = render_to_string('email/otp_verification_template.html', {'otp_code': otp_code, 'system_info': system_info})
+        html_content = render_to_string('email/forgetpass_otp_verification_template.html', {'otp_code': otp_code, 'system_info': system_info})
 
         try:
-          send_email(
+          send_email_task.delay(
                 subject='Verification OTP',
                 body=f'Your OTP is {otp_code}. Expire in 3 minutes.',
                 to_emails=[user.email,],
@@ -400,7 +447,24 @@ class VerifyOTPSerializer(serializers.Serializer):
             self.user.is_verified = True
             self.user.save()
 
-        return self.user
+        # Generate tokens
+        request = self.context.get('request')
+        user_agent_hash = get_user_agent_hash(request) if request else None
+        refresh = CustomRefreshToken.for_user(
+            self.user,
+            remember_me=False,
+            user_agent_hash=user_agent_hash
+        )
+        
+        return {
+            'user': {
+            'id': self.user.id,
+            'email': self.user.email,
+            'is_verified': self.user.is_verified,
+        },
+        'access_token': str(refresh.access_token),
+        'refresh_token': str(refresh)
+    }
 
 # Profile Update Avatar
 class UpdataProfileAvatarSerializer(serializers.ModelSerializer):
@@ -411,10 +475,7 @@ class UpdataProfileAvatarSerializer(serializers.ModelSerializer):
             'avatar': { 'write_only': True },
         }
 
-
-
-
-#  user
+#user
 class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -428,10 +489,8 @@ class UserSerializer(serializers.ModelSerializer):
             "profile",
         ]
 
-
 # UserProfile
 class UserProfileSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = UserProfile
         fields = [
@@ -439,9 +498,37 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "phone",
+            "gender",
             "accepted_terms",
             "dob",
-            "created_at",
-            "updated_at",
         ]
 
+        read_only_fields = [
+            "user",
+            ]
+
+# Get UserProfile
+class UserProfileGetSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField(source='user.avatar')
+    email = serializers.EmailField(source='user.email', read_only=True)
+    name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            "id",
+            "avatar",
+            "name",
+            "phone",
+            "gender",
+            "dob",
+            "email",
+        ]
+
+    def get_avatar(self, obj):
+        if obj.user.avatar:
+            return get_cloudinary_url(obj.user.avatar)
+        return None
+
+    def get_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip()
