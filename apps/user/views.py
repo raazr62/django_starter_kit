@@ -20,6 +20,7 @@ from .serializers import (
     ChangePasswordSerializer,
     SendOTPSerializer,
     ResendOTPSerializer,
+    UserProfileGetSerializer,
     VerifyOTPSerializer,
     ResetPasswordSerializer,
     UpdataProfileAvatarSerializer,
@@ -140,16 +141,38 @@ class VerifyOTPView(APIView):
     permission_classes = []
 
     def post(self, request):
-        serializer = VerifyOTPSerializer(data=request.data)
+        serializer = VerifyOTPSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            serializer.save()
-            return success(data=[], message="OTP verify is successfully.", status_code=status.HTTP_200_OK)
-        return error(message="OTP verify is failed.", status_code=status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
+            result = serializer.save()
+            data = result
+
+            return Response({
+                "status": 200,
+                "success": True,
+                "message": "OTP verify is successfully.",
+                "data": data,
+            }, status=status.HTTP_200_OK)
+        
+        # Extract error message from serializer errors
+        error_message = ""
+        if 'error' in serializer.errors:
+            error_message = serializer.errors['error'][0] if isinstance(serializer.errors['error'], list) else serializer.errors['error']
+        else:
+            # Fallback to first error if 'error' key doesn't exist
+            first_key = next(iter(serializer.errors))
+            error_message = serializer.errors[first_key][0] if isinstance(serializer.errors[first_key], list) else serializer.errors[first_key]
+        
+        return Response({
+            "status": 400,
+            "success": False,
+            "message": error_message,
+            "data": None 
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 # Profile Views
 class UpdataProfileAvatarView(APIView):
     permission_classes = [IsAuthenticated]
-    authentication_classes = [CookieJWTAuthentication]
+    authentication_classes = [JWTAuthentication]
 
     def post(self, request):
         user = request.user
@@ -163,7 +186,7 @@ class UpdataProfileAvatarView(APIView):
 # Profile Update
 class UpdateProfileView(APIView):
     permission_classes = [IsAuthenticated]
-    authentication_classes = [CookieJWTAuthentication]
+    authentication_classes = [JWTAuthentication]
 
     def put(self, request):
         user = request.user
@@ -182,7 +205,6 @@ class UpdateProfileView(APIView):
 # Profile Get
 class ProfileGet(APIView):
     permission_classes = [IsAuthenticated]
-    authentication_classes = [CookieJWTAuthentication]
 
     def get(self, request):
         user = request.user
@@ -190,22 +212,22 @@ class ProfileGet(APIView):
         try:
             profile = UserProfile.objects.select_related('user').get(user=user)
         except UserProfile.DoesNotExist:
-            return success(data=[], message="Profile not found.", status_code=status.HTTP_200_OK)
+            return Response({
+                "status": 400,
+                "success": False,
+                "message": "User not found.",
+                "data": {},
+            }, status=status.HTTP_400_BAD_REQUEST)
+        serializer = UserProfileGetSerializer(profile)
 
-        data = {
-            'id': profile.id,
-            'email': profile.user.email,
-            'first_name': profile.first_name,
-            'last_name': profile.last_name,
-            'avater': profile.user.avatar.url if profile.user.avatar else None,
-            'phone': profile.phone,
-            'accepted_terms': profile.accepted_terms,
-            'created_at': profile.created_at,
-            'updated_at': profile.updated_at,
-        }
-        return success(data=data, message="Profile get successfully.", status_code=status.HTTP_200_OK)
+        return Response({
+            "status": 200,
+            "success": True,
+            "message": "Profile fetched successfully.",
+            "data": serializer.data,
+        })  
 
-
+# Hybrid Token Refresh View
 class CookieTokenRefreshView(TokenRefreshView):
     """
     Hybrid Token Refresh View
@@ -247,7 +269,7 @@ class CookieTokenRefreshView(TokenRefreshView):
         
         return response
 
-
+# Hybrid Token Verify View
 class CookieTokenVerifyView(TokenVerifyView):
     """
     Hybrid Token Verify View
