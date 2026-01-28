@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    DeviceTokenView, NotificationListView, TestPushAPIView, 
+    DeleteNotificationsView, DeviceTokenView, NotificationListView, TestPushAPIView, 
     MarkNotificaitonsReadView, MarkNotificationReadView, Last30DaysNotificationsView,
     
 )
@@ -12,5 +12,7 @@ urlpatterns = [
     path("mark-all-read/", MarkNotificaitonsReadView.as_view(), name="mark-all-read"),
     path("mark-read/<int:notification_id>/", MarkNotificationReadView.as_view(), name="mark-read"),
     path("last-30-days/", Last30DaysNotificationsView.as_view(), name="notifications-last-30-days"),
+    path("delete/<int:notification_id>/", DeleteNotificationsView.as_view(), name="delete-notification"),
+    path("delete-all/", DeleteNotificationsView.as_view(), name="delete-all-notifications"),
 
 ]
