@@ -170,6 +170,47 @@ class Last30DaysNotificationsView(APIView):
                 "errors": str(e)
     }, status=status.HTTP_400_BAD_REQUEST)
 
+# Delete Notifications
+class DeleteNotificationsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, notification_id=None):
+        user = request.user
+
+        # Specific notification delete
+        if notification_id:
+            deleted_count, _ = Notification.objects.filter(
+                id=notification_id,
+                user=user
+            ).delete()
+
+            if deleted_count == 0:
+                return Response({
+                    "status": 404,
+                    "success": False,
+                    "message": "Notification not found.",
+                    "data": None
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            return Response({
+                "status": 200,
+                "success": True,
+                "message": "Notification deleted successfully.",
+                "data": None
+            }, status=status.HTTP_200_OK)
+
+        # Delete ALL notifications
+        deleted_count, _ = Notification.objects.filter(
+            user=user
+        ).delete()
+
+        return Response({
+            "status": 200,
+            "success": True,
+            "message": f"{deleted_count} notifications deleted successfully.",
+            "data": None
+        }, status=status.HTTP_200_OK)
+
 # Test Push Notification
 class TestPushAPIView(APIView):
     permission_classes = [IsAuthenticated]
