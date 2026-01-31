@@ -8,9 +8,10 @@ from apps.user.models import User, UserProfile
 from apps.utils.helpers import error
 from uuid import uuid4
 import secrets
+from rest_framework.response import Response
 
 from apps.user.serializers import CustomRefreshToken
-from apps.user.utils import get_user_agent_hash, create_hybrid_auth_response
+from apps.user.utils import get_user_agent_hash
 
 class GoogleAuthView(APIView):
     permission_classes = [AllowAny]  
@@ -81,13 +82,11 @@ class GoogleAuthView(APIView):
             'role': user.role,
         }
         
-        # Create hybrid response (supports both web and mobile)
-        response = create_hybrid_auth_response(
-            data=user_data,
-            tokens=tokens,
-            request=request,
-            message="Google login successful.",
-            status_code=status.HTTP_200_OK
-        )
-        
-        return response
+        return Response({
+                "status": "success",
+                "message": "Signin successful.",
+                "data": user_data,
+                "access_token": tokens['access'],
+                "refresh_token": tokens['refresh'],
+
+            })

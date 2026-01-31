@@ -3,6 +3,7 @@ from django.core.mail import EmailMessage
 from django.conf import settings
 import hashlib
 from apps.utils.helpers import success
+from cloudinary.utils import cloudinary_url
 
 
 def generate_otp(length=6):
@@ -29,7 +30,6 @@ def get_client_ip(request):
         ip = request.META.get('REMOTE_ADDR')
     return ip
 
-
 def get_user_agent_hash(request):
     """
     Get the SHA-256 hash of the User-Agent string.
@@ -42,11 +42,7 @@ def get_user_agent_hash(request):
     hash_object = hashlib.sha256(user_agent.encode('utf-8'))
     return hash_object.hexdigest()
 
-
-# ============================================
 # Hybrid Authentication Response Utilities
-# ============================================
-
 def set_auth_cookies(response, access_token, refresh_token, secure=False):
     
     # Get domain setting from Django settings
@@ -81,7 +77,6 @@ def set_auth_cookies(response, access_token, refresh_token, secure=False):
     
     return response
 
-
 def clear_auth_cookies(response):
     """
     Clear authentication cookies on logout.
@@ -94,7 +89,6 @@ def clear_auth_cookies(response):
     response.delete_cookie('access_token', domain=domain)
     response.delete_cookie('refresh_token', domain=domain)
     return response
-
 
 def create_hybrid_auth_response(data, tokens, request, message="Authentication successful", status_code=200):
    
@@ -127,7 +121,6 @@ def create_hybrid_auth_response(data, tokens, request, message="Authentication s
         set_auth_cookies(response, tokens['access'], tokens['refresh'], secure=secure)
     
     return response
-
 
 def create_hybrid_refresh_response(tokens, request, message="Token refreshed successfully", status_code=200):
   
@@ -184,3 +177,10 @@ def create_hybrid_refresh_response(tokens, request, message="Token refreshed suc
             )
     
     return response
+
+# Cloudinary Utility
+def get_cloudinary_url(file_field):
+    if not file_field:
+        return None
+    url, _ = cloudinary_url(str(file_field), secure=True)
+    return url

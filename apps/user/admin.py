@@ -5,9 +5,9 @@ from django.utils.html import format_html
 
 @admin.register(User)
 class CustomAdminClass(ModelAdmin):
-    list_display = ('id', 'email', 'first_name', 'last_name', 'preview_user_image', 'check_is_superuser')
-    list_display_links = ('id', 'email', 'first_name', 'last_name', 'preview_user_image', 'check_is_superuser')
-    search_fields = ('email', 'first_name', 'last_name')
+    list_display = ('id', 'email', 'preview_user_image', 'check_is_superuser')
+    list_display_links = ('id', 'email', 'preview_user_image', 'check_is_superuser')
+    search_fields = ('id', 'email',)
 
 
     def get_queryset(self, request):

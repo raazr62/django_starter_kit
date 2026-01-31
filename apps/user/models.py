@@ -6,6 +6,7 @@ from datetime import timedelta
 from django.utils import timezone
 from .managers import UserManager
 from django.contrib.auth.hashers import check_password
+from cloudinary.models import CloudinaryField
 
 
 
@@ -15,12 +16,13 @@ class User(AbstractBaseUser, PermissionsMixin):
         USER = 'user', _('User')
 
     email = models.EmailField(_("email address"), unique=True)
-    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+    avatar = CloudinaryField('avatar', blank=True, null=True)
     role = models.CharField(max_length=20, choices=Roles.choices, default=Roles.USER)
+    is_verified = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_superuser = models.BooleanField(default=False)
-    term_and_condition_accepted = models.BooleanField()
+    term_and_condition_accepted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     ip_address = models.GenericIPAddressField(blank=True, null=True)
@@ -38,6 +40,7 @@ class UserProfile(models.Model):
     first_name = models.CharField(max_length=30, blank=True)
     last_name = models.CharField(max_length=30, blank=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
+    gender = models.CharField(max_length=10, blank=True, null=True)
     accepted_terms = models.BooleanField(default=False)
     dob = models.DateField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
