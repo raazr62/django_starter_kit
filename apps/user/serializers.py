@@ -34,118 +34,155 @@ class CustomRefreshToken(RefreshToken):
 
 # Signup
 class SignUpSerializer(serializers.ModelSerializer):
+
+    # user
+    full_name = serializers.CharField(write_only=True, required=True)
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
-    confirm_password = serializers.CharField(write_only=True)
-    purpose = serializers.CharField(write_only=True)
     term_and_condition_accepted = serializers.BooleanField(required=True)
-    first_name = serializers.CharField(write_only=True, required=False)
-    last_name = serializers.CharField(write_only=True, required=False)
-    phone = serializers.CharField(write_only=True, required=False)
+    privacy_policy_accepted = serializers.BooleanField(required=True)
+
+    # user profile
+    phone = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
     avatar = serializers.ImageField(write_only=True, required=False)
-    gender = serializers.CharField(write_only=True, required=False)
-    dob = serializers.DateField(write_only=True, required=False)
+    gender = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
+    dob = serializers.DateField(write_only=True, required=False, allow_null=True)
+    purpose = serializers.CharField(write_only=True)
+
+    role = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'full_name',
+            'email',
+            'password',
+            'term_and_condition_accepted',
+            'privacy_policy_accepted',
+
+            'purpose',
+            'role',
+            'phone',
+            'avatar',
+            'gender',
+            'dob',
+        ]
 
     def validate(self, attrs):
+        full_name = (attrs.get('full_name') or '').strip()
         email = attrs.get('email')
         password = attrs.get('password')
-        confirm_password = attrs.get('confirm_password')
         term_and_condition_accepted = attrs.get('term_and_condition_accepted')
+        privacy_policy_accepted = attrs.get('privacy_policy_accepted')
+        purpose = (attrs.get('purpose') or '').strip()
+
+        # full_name required
+        if not full_name:
+            raise serializers.ValidationError({'full_name': 'Full name is required.'})
         
         # Check email already exists
         if User.objects.filter(email=email).exists():
             raise serializers.ValidationError({'email': 'User with this email already exists.'})
         
+        # Validate password
+        if not password:
+            raise serializers.ValidationError({'password': 'Password is required.'})
+
         # Check terms and conditions accepted
         if term_and_condition_accepted is not True:
-            raise serializers.ValidationError({'term_and_condition_accepted': 'You must accept the terms and conditions to proceed.'})
+            raise serializers.ValidationError({
+                'term_and_condition_accepted': 'You must accept the terms to proceed.'
+            })
         
-        # check password match
-        if password != confirm_password:
-            raise serializers.ValidationError({'confirm_password': 'Password and confirm password do not match.'})
+        # Check privacy policy accepted
+        if privacy_policy_accepted is not True:
+            raise serializers.ValidationError({
+                'privacy_policy_accepted': 'You must accept the privacy policy to proceed.'
+            })
+
+        allowed_purposes = {'signup'}
+        if purpose and purpose not in allowed_purposes:
+            raise serializers.ValidationError({'purpose': 'Invalid purpose.'})
 
         return attrs
 
-    class Meta:
-        model = User
-        fields = [
-            'email', 
-            'password',  
-            'confirm_password', 
-            'purpose', 
-            'role', 
-            'term_and_condition_accepted',
-            'first_name',
-            'last_name',
-            'phone',
-            'avatar',
-            'gender',
-            'dob',
-
-        ]
-
     def create(self, validated_data):
+        full_name = (validated_data.pop('full_name', '') or '').strip()
         email = validated_data.pop('email')
         password = validated_data.pop('password')
-        validated_data.pop('confirm_password')
+
         avatar = validated_data.pop('avatar', None)
-        first_name = validated_data.pop('first_name', '')
-        last_name = validated_data.pop('last_name', '')
         gender = validated_data.pop('gender', None)
         dob = validated_data.pop('dob', None)
         phone = validated_data.pop('phone', None)
+        purpose = validated_data.pop('purpose', None)
+
+        # Split full_name -> first_name, last_name
+        parts = full_name.split()
+        first_name = " ".join(parts[:-1]) if len(parts) > 1 else (parts[0] if parts else "")
+        last_name = parts[-1] if len(parts) > 1 else ""
         
+        # Create user
         user = User.objects.create_user(
             email=email,
             password=password,
-            term_and_condition_accepted=validated_data.get('term_and_condition_accepted')
-            )
+            term_and_condition_accepted=validated_data.get('term_and_condition_accepted', False),
+            privacy_policy_accepted=validated_data.get('privacy_policy_accepted', False)
+        )
 
         if avatar:
             user.avatar = avatar
-            user.save()
-        
+            user.save(update_fields=['avatar'])
 
-        # Create profile 
+        # Create profile
         UserProfile.objects.create(
             user=user,
             first_name=first_name,
-            last_name=last_name, 
-            gender=gender, 
+            last_name=last_name,
+            gender=gender,
             dob=dob,
-            phone=phone
-            )
-        
-        # otp_code = generate_otp()
-        otp_code = "123456"  # Hardcoded for testing
-        print("OTP CODE:", otp_code)
-        otp_hashed = make_password(otp_code)
+            phone=phone,
+            accepted_terms=validated_data.get('term_and_condition_accepted', False)  # optional sync
+        )
 
+        # OTP create
+        otp_code = "123456"  # Hardcoded for testing
+        otp_hashed = make_password(otp_code)
         expires_at = timezone.now() + timedelta(minutes=3)
-        
-        # Use 'signup' as purpose for account creation to match verification logic
-        OTP.objects.update_or_create(user=user, defaults={'otp': otp_hashed, 'is_verify': False, 'purpose': 'signup', 'created_at': timezone.now(), 'expires_at': expires_at})
-        
+
+        OTP.objects.update_or_create(
+            user=user,
+            defaults={
+                'otp': otp_hashed,
+                'is_verify': False,
+                'purpose': purpose or 'signup',
+                'created_at': timezone.now(),
+                'expires_at': expires_at
+            }
+        )
+
         system_info = AboutSystem.objects.first()
-        html_content = render_to_string('email/signup_otp_verification_template.html', {'otp_code': otp_code, 'system_info': system_info})
-        
-        # Send email asynchronously using Celery
+        html_content = render_to_string(
+            'email/signup_otp_verification_template.html',
+            {'otp_code': otp_code, 'system_info': system_info}
+        )
+
         send_email_task.delay(
             subject='Verification OTP',
             body=f'Your OTP is {otp_code}. Expire in 3 minutes.',
-            to_emails=[user.email,],
+            to_emails=[user.email],
             from_email=settings.EMAIL_HOST_USER,
             html_body=html_content
         )
-    
+
         return user
-    
+
     def to_representation(self, instance):
         request = self.context.get('request')
         user_agent_hash = get_user_agent_hash(request) if request else None
 
         refresh = CustomRefreshToken.for_user(instance, user_agent_hash=user_agent_hash)
-        
+
         return {
             'user': {
                 'id': instance.id,
