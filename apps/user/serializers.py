@@ -238,6 +238,7 @@ class SignInSerializer(serializers.Serializer):
             'user': {
                 'id': user.id,
                 'email': user.email,
+                'avatar': get_cloudinary_url(user.avatar) if user.avatar else None,
                 'role': user.role,
             },
             'refresh': str(refresh),
@@ -497,6 +498,7 @@ class VerifyOTPSerializer(serializers.Serializer):
             'user': {
             'id': self.user.id,
             'email': self.user.email,
+            'avatar': get_cloudinary_url(self.user.avatar) if self.user.avatar else None,
             'is_verified': self.user.is_verified,
         },
         'access_token': str(refresh.access_token),
@@ -504,7 +506,7 @@ class VerifyOTPSerializer(serializers.Serializer):
     }
 
 # Profile Update Avatar
-class UpdataProfileAvatarSerializer(serializers.ModelSerializer):
+class UpdateProfileAvatarSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['avatar']
