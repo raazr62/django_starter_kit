@@ -146,7 +146,8 @@ class SignUpSerializer(serializers.ModelSerializer):
         )
 
         # OTP create
-        otp_code = "123456"  # Hardcoded for testing
+        # otp_code = generate_otp()
+        otp_code = "1234"  # Hardcoded for testing
         otp_hashed = make_password(otp_code)
         expires_at = timezone.now() + timedelta(minutes=3)
 
@@ -317,7 +318,7 @@ class SendOTPSerializer(serializers.Serializer):
             raise serializers.ValidationError({'error': 'User not found.'})
         
         # otp_code = generate_otp()
-        otp_code = "123456"  # Hardcoded for testing
+        otp_code = "1234"  # Hardcoded for testing
         otp_hashed = make_password(otp_code)
         purpose = attrs['purpose']
 
@@ -411,7 +412,7 @@ class ResendOTPSerializer(serializers.Serializer):
             pass
         
         # otp_code = generate_otp()
-        otp_code = "123456"  # Hardcoded for testing
+        otp_code = "1234"  # Hardcoded for testing
         otp_hashed = make_password(otp_code)
         purpose = attrs['purpose']
 
