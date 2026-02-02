@@ -6,7 +6,7 @@ from apps.utils.helpers import success
 from cloudinary.utils import cloudinary_url
 
 
-def generate_otp(length=6):
+def generate_otp(length=4):
     digits = '0123456789'
     return ''.join(secrets.choice(digits) for _ in range(length))
 
