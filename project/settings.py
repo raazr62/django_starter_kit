@@ -299,6 +299,8 @@ INTERNAL_IPS = [
 GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID')
 GOOGLE_SECRET_KEY = config('GOOGLE_SECRET_KEY')
 
+GOOGLE_OAUTH_CLIENT_ID="407408718192.apps.googleusercontent.com"
+
 
 # unfold settings
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
