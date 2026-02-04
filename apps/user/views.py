@@ -180,7 +180,8 @@ class UpdataProfileAvatarView(APIView):
         serializer = UpdateProfileAvatarSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return success(data=serializer.data, message="Profile avatar update successfully.", status_code=status.HTTP_200_OK)
+            avatar_url = serializer.data.get('avatar')
+            return success(data=avatar_url, message="Profile avatar update successfully.", status_code=status.HTTP_200_OK)
         return error(message="Profile avatar update failed.", status_code=status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
 
 # Profile Update
