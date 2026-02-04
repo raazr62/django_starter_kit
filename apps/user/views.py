@@ -23,7 +23,7 @@ from .serializers import (
     UserProfileGetSerializer,
     VerifyOTPSerializer,
     ResetPasswordSerializer,
-    UpdataProfileAvatarSerializer,
+    UpdateProfileAvatarSerializer,
     UserProfileSerializer,
 )
 
@@ -177,7 +177,7 @@ class UpdataProfileAvatarView(APIView):
     def post(self, request):
         user = request.user
         
-        serializer = UpdataProfileAvatarSerializer(user, data=request.data, partial=True)
+        serializer = UpdateProfileAvatarSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return success(data=serializer.data, message="Profile avatar update successfully.", status_code=status.HTTP_200_OK)
