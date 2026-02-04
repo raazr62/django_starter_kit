@@ -1,5 +1,3 @@
-# utils/api_response.py
-
 from rest_framework.response import Response
 from rest_framework import status
 from django.core.mail import EmailMultiAlternatives
@@ -7,6 +5,7 @@ from django.core.mail import EmailMultiAlternatives
 
 def success(data=None, message="Success", status_code=status.HTTP_200_OK):
     return Response({
+        "status": status_code,
         "success": True,
         "message": message,
         "data": data
@@ -14,6 +13,7 @@ def success(data=None, message="Success", status_code=status.HTTP_200_OK):
 
 def error(message="Error", errors=None, status_code=status.HTTP_400_BAD_REQUEST):
     return Response({
+        "status": status_code,
         "success": False,
         "message": message,
         "errors": errors

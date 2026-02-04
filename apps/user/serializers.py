@@ -511,12 +511,16 @@ class VerifyOTPSerializer(serializers.Serializer):
 
 # Profile Update Avatar
 class UpdateProfileAvatarSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField()
     class Meta:
         model = User
-        fields = ['avatar']
-        extra_kwargs = {
-            'avatar': { 'write_only': True },
-        }
+        fields = [
+            'avatar'
+                ]
+    def get_avatar(self, obj):
+        if obj.avatar:
+            return get_cloudinary_url(obj.avatar)
+        return None
 
 #user
 class UserSerializer(serializers.ModelSerializer):
@@ -534,27 +538,26 @@ class UserSerializer(serializers.ModelSerializer):
 
 # UserProfile
 class UserProfileSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField()
     class Meta:
         model = UserProfile
         fields = [
-            "user",
-            "first_name",
-            "last_name",
-            "phone",
-            "gender",
-            "accepted_terms",
-            "dob",
+            "id",
+            "full_name",
+            "linkedin",
+            "github",
+            "twitter",
         ]
 
-        read_only_fields = [
-            "user",
-            ]
+    def get_full_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip()
 
 # Get UserProfile
 class UserProfileGetSerializer(serializers.ModelSerializer):
     avatar = serializers.SerializerMethodField(source='user.avatar')
     email = serializers.EmailField(source='user.email', read_only=True)
     name = serializers.SerializerMethodField()
+    joining_date = serializers.SerializerMethodField()
 
     class Meta:
         model = UserProfile
@@ -562,10 +565,11 @@ class UserProfileGetSerializer(serializers.ModelSerializer):
             "id",
             "avatar",
             "name",
-            "phone",
-            "gender",
-            "dob",
             "email",
+            "joining_date",
+            "linkedin",
+            "github",
+            "twitter",
         ]
 
     def get_avatar(self, obj):
@@ -575,3 +579,8 @@ class UserProfileGetSerializer(serializers.ModelSerializer):
 
     def get_name(self, obj):
         return f"{obj.first_name} {obj.last_name}".strip()
+    
+    def get_joining_date(self, obj):
+        if obj.user.created_at:
+            return obj.user.created_at.strftime("%d %B %Y")
+        return None
