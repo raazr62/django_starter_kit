@@ -1,42 +1,29 @@
 from rest_framework import serializers
-from .models import PricingSection, PlanItem, Features
+from .models import PlanItem, Features
 
+# PlanItem Features
 class FeaturesSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Features
         fields = [
-            'id', 
+            'order',
             'text', 
-            'include', 
-            'order'
+            'include',
+
         ]
 
-class PlanItemSerializer(serializers.ModelSerializer):
+# PlanItem
+class PlanItemSerializer(serializers.ModelSerializer): 
     features = FeaturesSerializer(many=True, read_only=True)
-    yearly_price = serializers.SerializerMethodField()
 
     class Meta:
         model = PlanItem
         fields = [
             'id', 
             'billing_cycle',
-            'yearly_price',
-            'monthly_price',
+            'price',
             'is_active', 
-            'features'
-        ]
-    
-    def get_yearly_price(self, obj):
-        return obj.yearly_price
+            'features',
 
-class PricingSectionSerializer(serializers.ModelSerializer):
-    plan_items = PlanItemSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = PricingSection
-        fields = [
-            'id', 
-            'title', 
-            'subtitle', 
-            'plan_items'
         ]
