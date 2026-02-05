@@ -538,7 +538,8 @@ class UserSerializer(serializers.ModelSerializer):
 
 # UserProfile
 class UserProfileSerializer(serializers.ModelSerializer):
-    full_name = serializers.SerializerMethodField()
+    full_name = serializers.CharField(required=False, allow_blank=True)
+
     class Meta:
         model = UserProfile
         fields = [
@@ -549,8 +550,42 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "twitter",
         ]
 
-    def get_full_name(self, obj):
-        return f"{obj.first_name} {obj.last_name}".strip()
+    def to_representation(self, instance):
+        # Compute full name and preserve the order specified in Meta.fields
+        computed_full_name = f"{instance.first_name} {instance.last_name}".strip()
+        ret = super().to_representation(instance)
+
+        ordered = {}
+        for field in self.Meta.fields:
+            if field == 'full_name':
+                ordered['full_name'] = computed_full_name
+            else:
+                ordered[field] = ret.get(field)
+        return ordered
+
+    def _split_full_name(self, full_name):
+        parts = (full_name or '').strip().split()
+        first_name = " ".join(parts[:-1]) if len(parts) > 1 else (parts[0] if parts else "")
+        last_name = parts[-1] if len(parts) > 1 else ""
+        return first_name, last_name
+
+    def create(self, validated_data):
+        full_name = validated_data.pop('full_name', None)
+        if full_name is not None:
+            first_name, last_name = self._split_full_name(full_name)
+            validated_data['first_name'] = first_name
+            validated_data['last_name'] = last_name
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # Update first/last name when full_name is supplied, then update other fields
+        full_name = validated_data.pop('full_name', None)
+        if full_name is not None:
+            first_name, last_name = self._split_full_name(full_name)
+            instance.first_name = first_name
+            instance.last_name = last_name
+            instance.save(update_fields=['first_name', 'last_name'])
+        return super().update(instance, validated_data)
 
 # Get UserProfile
 class UserProfileGetSerializer(serializers.ModelSerializer):

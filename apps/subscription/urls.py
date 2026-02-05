@@ -1,6 +1,6 @@
 from django.urls import path
-from .views import PricingListView
+from .views import PlanItemView
 
 urlpatterns = [
-    path('subscription/packages/', PricingListView.as_view(), name='pricing-list'),
+    path('subscription/packages/', PlanItemView.as_view(), name='plan-item'),
 ]
