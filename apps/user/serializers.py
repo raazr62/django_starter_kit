@@ -511,16 +511,22 @@ class VerifyOTPSerializer(serializers.Serializer):
 
 # Profile Update Avatar
 class UpdateProfileAvatarSerializer(serializers.ModelSerializer):
-    avatar = serializers.SerializerMethodField()
+    avatar = serializers.ImageField(required=False, allow_null=True)
     class Meta:
         model = User
-        fields = [
-            'avatar'
-                ]
-    def get_avatar(self, obj):
-        if obj.avatar:
-            return get_cloudinary_url(obj.avatar)
-        return None
+        fields = ['avatar']
+
+    def update(self, instance, validated_data):
+        avatar = validated_data.get('avatar', None)
+        if avatar is not None:
+            instance.avatar = avatar
+            instance.save(update_fields=['avatar'])
+        return instance
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['avatar'] = get_cloudinary_url(instance.avatar) if instance.avatar else None
+        return ret
 
 #user
 class UserSerializer(serializers.ModelSerializer):
