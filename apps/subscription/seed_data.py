@@ -8,7 +8,7 @@ def seed_subscription_plans():
     """
 
     # Import models lazily to avoid "Apps aren't loaded yet" when module is imported
-    from apps.subscription.models import PlanItem, Features
+    from apps.subscription.models import SubscriptionPackage, Features
 
     plans = [
         {
@@ -44,7 +44,7 @@ def seed_subscription_plans():
     ]
 
     for plan_data in plans:
-        plan, created = PlanItem.objects.get_or_create(
+        plan, created = SubscriptionPackage.objects.get_or_create(
             billing_cycle_type="preset",
             billing_cycle=plan_data["billing_cycle"],
             defaults={"price": plan_data["price"]},
@@ -58,7 +58,7 @@ def seed_subscription_plans():
         # Create features; keep ordering consistent
         for idx, feat in enumerate(plan_data["features"], start=1):
             Features.objects.update_or_create(
-                plan_item=plan,
+                subscriptionpackage=plan,
                 text=feat["text"],
                 defaults={"include": feat["include"], "order": idx},
             )

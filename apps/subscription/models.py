@@ -105,6 +105,12 @@ class Subscription(models.Model):
     def has_subscription(self):
         return self.status == 'active' and self.end_date > timezone.now()
     
+    # expire subscription if end_date has passed
+    def check_and_update_status(self):
+        if self.status == 'active' and self.end_date and self.end_date < timezone.now():
+            self.status = 'expired'
+            self.save()
+    
     def __str__(self):
         return f"{self.user.email} "
 

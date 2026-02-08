@@ -22,6 +22,8 @@ class SubscriptionPackageSerializer(serializers.ModelSerializer):
             'id', 
             'billing_cycle',
             'price',
+            'stripe_price_id',
+            'stripe_product_id',
             'is_active', 
             'features',
             ]

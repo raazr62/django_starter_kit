@@ -88,7 +88,7 @@ INSTALLED_APPS = [
     "apps.user",
     "apps.system_setting",
     "apps.cms",
-    "apps.subscription",
+    "apps.subscription.apps.SubscriptionConfig",
     "apps.notification.apps.NotificationConfig",
 
 ]
@@ -300,6 +300,10 @@ GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID')
 GOOGLE_SECRET_KEY = config('GOOGLE_SECRET_KEY')
 
 GOOGLE_OAUTH_CLIENT_ID="407408718192.apps.googleusercontent.com"
+
+# Stripe
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET') 
 
 
 # unfold settings
