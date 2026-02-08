@@ -178,7 +178,7 @@ class CurrentSubscriptionPlanAPIView(APIView):
     def get(self, request):
         user = request.user
         try:
-            subscription = Subscription.objects.filter(user=user).first()
+            subscription = Subscription.objects.filter(user=user, status='active').first()
             if(not subscription):
                 return error(message="No subscription found for the user", errors="User does not have a subscription", status_code=200)
             if subscription:
