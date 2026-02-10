@@ -46,7 +46,7 @@ class GoogleLoginView(APIView):
             decoded = google_id_token.verify_oauth2_token(
                 token,
                 google_requests.Request(),
-                audience=settings.GOOGLE_OAUTH_CLIENT_ID,  # must match token's aud
+                audience=settings.GOOGLE_OAUTH_AUD_ID,  # must match token's aud
             )
         except Exception as e:
             return Response(
