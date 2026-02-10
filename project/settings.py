@@ -18,6 +18,8 @@ from django.templatetags.static import static
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from decouple import config
+from dotenv import load_dotenv
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -292,8 +294,12 @@ INTERNAL_IPS = [
     "localhost",
 ]
 
-# Google OAuth Client ID
-GOOGLE_OAUTH_AUD_ID=config('GOOGLE_OAUTH_AUD_ID')
+# social auth settings
+
+GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID')
+GOOGLE_SECRET_KEY = config('GOOGLE_SECRET_KEY')
+
+GOOGLE_OAUTH_CLIENT_ID="407408718192.apps.googleusercontent.com"
 
 # Stripe
 STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY')
