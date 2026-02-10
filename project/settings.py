@@ -294,12 +294,8 @@ INTERNAL_IPS = [
     "localhost",
 ]
 
-# social auth settings
-
-GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID')
-GOOGLE_SECRET_KEY = config('GOOGLE_SECRET_KEY')
-
-GOOGLE_OAUTH_CLIENT_ID="407408718192.apps.googleusercontent.com"
+# Google OAuth Client ID
+GOOGLE_OAUTH_CLIENT_ID=config('GOOGLE_OAUTH_CLIENT_ID')
 
 # Stripe
 STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY')
