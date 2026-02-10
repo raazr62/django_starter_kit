@@ -8,9 +8,9 @@ User = settings.AUTH_USER_MODEL
 # Subscription Plan Item
 class SubscriptionPackage(models.Model):
     BILLING_CHOICES = [
-        ('7_days', '7 Days'),
-        ('14_days', '14 Days'),
-        ('30_days', '30 Days'),
+        ('7 Days', '7 Days'),
+        ('14 Days', '14 Days'),
+        ('30 Days', '30 Days'),
     ]
 
     CYCLE_TYPE = [
