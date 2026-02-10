@@ -132,7 +132,7 @@ class PaymentHistory(models.Model):
     paid_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.subscriptionpackage.name}"
+        return f"{self.subscriptionpackage.price if self.subscriptionpackage else self.amount}"
 
 # Income Report (for admin dashboard)
 class IncomeReport(models.Model):
