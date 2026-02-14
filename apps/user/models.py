@@ -44,6 +44,9 @@ class UserProfile(models.Model):
     gender = models.CharField(max_length=10, blank=True, null=True)
     accepted_terms = models.BooleanField(default=False)
     dob = models.DateField(blank=True, null=True)
+    linkedin = models.URLField(blank=True, null=True)
+    github = models.URLField(blank=True, null=True)
+    twitter = models.URLField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

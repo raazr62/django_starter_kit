@@ -88,7 +88,7 @@ INSTALLED_APPS = [
     "apps.user",
     "apps.system_setting",
     "apps.cms",
-    "apps.subscription",
+    "apps.subscription.apps.SubscriptionConfig",
     "apps.notification.apps.NotificationConfig",
 
 ]
@@ -266,7 +266,6 @@ CSRF_COOKIE_HTTPONLY = True  # XSS protection
 SESSION_COOKIE_SAMESITE = 'None' if not DEBUG else 'Lax'  # 'None' requires HTTPS in production
 CSRF_COOKIE_SAMESITE = 'None' if not DEBUG else 'Lax'  # 'None' allows cross-origin
 
-import os
 
 
 # Cloudinary Settings
@@ -299,7 +298,11 @@ INTERNAL_IPS = [
 GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID')
 GOOGLE_SECRET_KEY = config('GOOGLE_SECRET_KEY')
 
-GOOGLE_OAUTH_CLIENT_ID="407408718192.apps.googleusercontent.com"
+GOOGLE_OAUTH_AUD_ID = config('GOOGLE_OAUTH_AUD_ID')
+
+# Stripe
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET') 
 
 
 # unfold settings

@@ -46,7 +46,7 @@ class GoogleLoginView(APIView):
             decoded = google_id_token.verify_oauth2_token(
                 token,
                 google_requests.Request(),
-                audience=settings.GOOGLE_OAUTH_CLIENT_ID,  # must match token's aud
+                audience=settings.GOOGLE_OAUTH_AUD_ID,  # must match token's aud
             )
         except Exception as e:
             return Response(
@@ -95,7 +95,7 @@ class GoogleLoginView(APIView):
             )
             
             # Update profile if name changed
-            if not profile_created and (profile.first_name != first_name or profile.last_name != last_name):
+            if not profile_created:
                 profile.first_name = first_name
                 profile.last_name = last_name
                 profile.save(update_fields=["first_name", "last_name"])
