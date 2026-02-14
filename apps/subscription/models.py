@@ -1,52 +1,82 @@
-from decimal import Decimal
 from django.db import models
 from project import settings
+from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 User = settings.AUTH_USER_MODEL
 
-
-class PricingSection(models.Model):
-    title = models.CharField(max_length=255, default="Unlock Premium Healing", null=True, blank=True)
-    subtitle = models.CharField(max_length=255, default="Unlimited healing sessions, anytime", null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.title or "Title"
-
-class PlanItem(models.Model):
+# Subscription Plan Item
+class SubscriptionPackage(models.Model):
     BILLING_CHOICES = [
-        ('monthly', 'Monthly'),
-        ('yearly', 'Yearly'),
+        ('7 Days', '7 Days'),
+        ('14 Days', '14 Days'),
+        ('30 Days', '30 Days'),
     ]
 
-    pricing = models.ForeignKey(PricingSection, on_delete=models.CASCADE, related_name="plan_items", null=True, blank=True)
-    billing_cycle = models.CharField(max_length=20, choices=BILLING_CHOICES, default="monthly") 
-    monthly_price = models.DecimalField(max_digits=6, decimal_places=2)
-    discount_percent = models.PositiveIntegerField(default=0, help_text="Only applicable for yearly plans")
-    heading = models.CharField(max_length=100, null=True, blank=True, default="Premium Benefits")
-    is_active = models.BooleanField(default=False)
+    CYCLE_TYPE = [
+        ('preset', 'Preset'),
+        ('custom', 'Custom'),
+    ]
+
+    billing_cycle_type = models.CharField(max_length=10, choices=CYCLE_TYPE, default='preset')
+    billing_cycle = models.CharField(max_length=20, choices=BILLING_CHOICES, blank=True, null=True)
+    custom_days = models.PositiveIntegerField(blank=True, null=True)
+    price = models.DecimalField(max_digits=6, decimal_places=2)
+    is_active = models.BooleanField(default=True, help_text="Designates whether this plan is active and available for subscription.")
+    stripe_product_id = models.CharField(max_length=100, blank=True, null=True)
+    stripe_price_id = models.CharField(max_length=100, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    @property
-    def yearly_price(self):
-        if self.billing_cycle == "monthly":
-            return self.monthly_price
+    class Meta:
+        ordering = ['created_at']
 
-        yearly_base = self.monthly_price * Decimal(12)
-        discount = (yearly_base * self.discount_percent) / Decimal(100)
-        final_price = yearly_base - discount
-        return final_price.quantize(Decimal('0.01'))
+    def clean(self):
+        # preset need only select
+        if self.billing_cycle_type == 'preset':
+            if not self.billing_cycle:
+                raise ValidationError({
+                    "billing_cycle": "Billing cycle is required for preset plans."
+                })
+            if self.custom_days:
+                raise ValidationError({
+                    "custom_days": "Custom days must be empty for preset plans."
+                })
+
+        # custiom days need value
+        if self.billing_cycle_type == 'custom':
+            if not self.custom_days:
+                raise ValidationError({
+                    "custom_days": "Custom days value is required for custom plans."
+                })
+            if self.billing_cycle:
+                raise ValidationError({
+                    "billing_cycle": "Preset billing cycle cannot be selected for custom plans."
+                })
+
+    def get_billing_days(self):
+        # Return billing duration in days
+        if self.billing_cycle_type == 'custom':
+            return self.custom_days
+
+        mapping = {
+            '7_days': 7,
+            '14_days': 14,
+            '30_days': 30,
+        }
+        return mapping.get(self.billing_cycle)
 
     def __str__(self):
-        return f"{self.billing_cycle} plan"
+        if self.billing_cycle_type == 'custom':
+            return f"{self.custom_days} Days (Custom) Plan"
+        return f"{self.billing_cycle} Plan"
 
+# Subscription Package Features
 class Features(models.Model):
-    planitem = models.ForeignKey(PlanItem, on_delete=models.CASCADE, related_name="features", null=True, blank=True)
+    subscriptionpackage = models.ForeignKey(SubscriptionPackage, on_delete=models.CASCADE, related_name="features", null=True, blank=True)
     text = models.CharField(max_length=255, null=True, blank=True)
     include = models.BooleanField(default=True)
-    order = models.PositiveIntegerField(default=0)
+    order = models.PositiveIntegerField(default=1, db_index=True)  # IMPORTANT for drag-and-drop ordering
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -56,19 +86,57 @@ class Features(models.Model):
     def __str__(self):
         return self.text or "Features Text"
 
-
+# User Subscription
 class Subscription(models.Model):
-    STATUS_CHOICES = (
-        ("active", "Active"),
-        ("canceled", "Canceled"),
-        ("expired", "Expired"),
-    )
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    plan_item = models.ForeignKey(PlanItem, on_delete=models.SET_NULL, null=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
-    start_date = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='subscriptions')
+    subscriptionpackage = models.ForeignKey(SubscriptionPackage, on_delete=models.PROTECT, blank=True, null=True)
+    stripe_subscription_id = models.CharField(max_length=100, blank=True, null=True) 
+    status = models.CharField(max_length=20, choices=[
+        ('active', 'Active'),
+        ('expired', 'Expired'),
+        ('cancelled', 'Cancelled'),
+        ('pending', 'Pending')
+    ], default='pending')  
+    start_date = models.DateTimeField(null=True, blank=True)
     end_date = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def has_subscription(self):
+        return self.status == 'active' and self.end_date > timezone.now()
+    
+    # expire subscription if end_date has passed
+    def check_and_update_status(self):
+        if self.status == 'active' and self.end_date and self.end_date < timezone.now():
+            self.status = 'expired'
+            self.save()
+    
+    def __str__(self):
+        return f"{self.user.email} "
+
+# Payment History
+class PaymentHistory(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    subscriptionpackage = models.ForeignKey(SubscriptionPackage, on_delete=models.SET_NULL, null=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_gateway = models.CharField(max_length=50, choices=[
+        ('stripe', 'Stripe'),
+        ('paypal', 'PayPal'),
+    ])
+    payment_status = models.CharField(max_length=20, choices=[
+        ('success', 'Success'),
+        ('failed', 'Failed'),
+        ('pending', 'Pending'), 
+    ])
+    transaction_id = models.CharField(max_length=100, blank=True, null=True)
+    paid_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user} - {self.plan}"
+        return f"{self.subscriptionpackage.price if self.subscriptionpackage else self.amount}"
+
+# Income Report (for admin dashboard)
+class IncomeReport(models.Model):
+    total_income = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    def __str__(self):
+        return f"Income Report for {self.month.strftime('%B %Y')} - Total Income: {self.total_income}"

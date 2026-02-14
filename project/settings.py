@@ -88,7 +88,7 @@ INSTALLED_APPS = [
     "apps.user",
     "apps.system_setting",
     "apps.cms",
-    "apps.subscription",
+    "apps.subscription.apps.SubscriptionConfig",
     "apps.notification.apps.NotificationConfig",
 
 ]
@@ -266,7 +266,6 @@ CSRF_COOKIE_HTTPONLY = True  # XSS protection
 SESSION_COOKIE_SAMESITE = 'None' if not DEBUG else 'Lax'  # 'None' requires HTTPS in production
 CSRF_COOKIE_SAMESITE = 'None' if not DEBUG else 'Lax'  # 'None' allows cross-origin
 
-import os
 
 
 # Cloudinary Settings
@@ -279,13 +278,12 @@ DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
 # email settings
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.hostinger.com'
-EMAIL_PORT = 587  # Or 465 if using SSL
-EMAIL_USE_TLS = True  # If you use port 587
-
-EMAIL_HOST_USER = 'hello@clever-cv.de'
-EMAIL_HOST_PASSWORD = 'Poseidon2301!'
-DEFAULT_FROM_EMAIL = 'hello@clever-cv.de'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'sawafrafa003@gmail.com'
+EMAIL_HOST_PASSWORD = 'hoof saiy goei qjll'
+DEFAULT_FROM_EMAIL = 'sawafrafa003@gmail.com'
 
 
 
@@ -299,6 +297,12 @@ INTERNAL_IPS = [
 
 GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID')
 GOOGLE_SECRET_KEY = config('GOOGLE_SECRET_KEY')
+
+GOOGLE_OAUTH_AUD_ID = config('GOOGLE_OAUTH_AUD_ID')
+
+# Stripe
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET') 
 
 
 # unfold settings

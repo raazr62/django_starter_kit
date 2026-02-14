@@ -23,7 +23,7 @@ from .serializers import (
     UserProfileGetSerializer,
     VerifyOTPSerializer,
     ResetPasswordSerializer,
-    UpdataProfileAvatarSerializer,
+    UpdateProfileAvatarSerializer,
     UserProfileSerializer,
 )
 
@@ -41,34 +41,20 @@ class SignUpView(APIView):
         if serializer.is_valid():
             serializer.save()
             result = serializer.data
-            return Response({
-                "status": "success",
-                "message": "Signup successful.",
-                "data": result['user'],
-            })
+            return success(data=result['user'], message="Signup successful.", status_code=status.HTTP_201_CREATED)
         raise ValidationError(serializer.errors)
 
 # Signin
 class SignInView(APIView):
-
     permission_classes = []
 
     def post(self, request):
-        print("REQUEST DATA:", request.data)
-        
         serializer = SignInSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             result = serializer.data
             
             
-            return Response({
-                "status": "success",
-                "message": "Signin successful.",
-                "data": result['user'],
-                "access_token": result['access'],
-                "refresh_token": result['refresh'],
-
-            })
+            return success(data=result, message="Login successful.")
         raise ValidationError(serializer.errors)
 
 # Signout
@@ -80,8 +66,8 @@ class SignOutView(APIView):
         serializer = SignOutSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response({'status':status.HTTP_200_OK, 'success':True, 'message': 'Logout successful.', 'data': serializer.data}, status.HTTP_200_OK)
-        return Response({'status':status.HTTP_400_BAD_REQUEST, 'success':False, 'message': 'Logout failed.', 'data': serializer.errors}, status.HTTP_400_BAD_REQUEST)
+            return success(message="Logout successful.")
+        raise ValidationError(serializer.errors)
 
 # Change Password
 class ChangePasswordView(APIView):
@@ -93,7 +79,7 @@ class ChangePasswordView(APIView):
         serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
-            return success(data=[], message="Password change successfully.", status_code=status.HTTP_200_OK)
+            return success(message="Password change successfully.", status_code=status.HTTP_200_OK)
         raise ValidationError(serializer.errors)
 
 # Forgot Password (OTP Send)
@@ -103,7 +89,7 @@ class SendOTPView(APIView):
     def post(self, request):
         serializer = SendOTPSerializer(data=request.data)
         if serializer.is_valid():
-            return success(data=[], message="OTP send to mail successfully.", status_code=status.HTTP_200_OK)
+            return success(message="OTP send to mail successfully.")
         errors = serializer.errors
         if "email" in errors:
             errors["error"] = errors.pop("email")
@@ -117,11 +103,11 @@ class ResetPasswordView(APIView):
         serializer = ResetPasswordSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return success(data=[], message="Password reset successfully.", status_code=status.HTTP_200_OK)
+            return success(message="Password reset successfully.")
         errors = serializer.errors
         if "non_field_errors" in errors:
             errors["error"] = errors.pop("non_field_errors")
-        return error(message="Password reset failed.", status_code=status.HTTP_400_BAD_REQUEST, errors=errors)
+        return error(message="Password reset failed.", errors=errors)
 
 # Resend OTP
 class ResendOTPView(APIView):
@@ -130,7 +116,7 @@ class ResendOTPView(APIView):
     def post(self, request):
         serializer = ResendOTPSerializer(data=request.data)
         if serializer.is_valid():
-            return success(data=[], message="OTP send to mail successfully.", status_code=status.HTTP_200_OK)
+            return success(message="OTP send to mail successfully.")
         errors = serializer.errors
         if "email" in errors:
             errors["error"] = errors.pop("email")
@@ -146,12 +132,7 @@ class VerifyOTPView(APIView):
             result = serializer.save()
             data = result
 
-            return Response({
-                "status": 200,
-                "success": True,
-                "message": "OTP verify is successfully.",
-                "data": data,
-            }, status=status.HTTP_200_OK)
+            return success(data=data, message="OTP verified successfully.")
         
         # Extract error message from serializer errors
         error_message = ""
@@ -162,12 +143,7 @@ class VerifyOTPView(APIView):
             first_key = next(iter(serializer.errors))
             error_message = serializer.errors[first_key][0] if isinstance(serializer.errors[first_key], list) else serializer.errors[first_key]
         
-        return Response({
-            "status": 400,
-            "success": False,
-            "message": error_message,
-            "data": None 
-            }, status=status.HTTP_400_BAD_REQUEST)
+        return error(message=error_message)
 
 # Profile Views
 class UpdataProfileAvatarView(APIView):
@@ -177,11 +153,12 @@ class UpdataProfileAvatarView(APIView):
     def post(self, request):
         user = request.user
         
-        serializer = UpdataProfileAvatarSerializer(user, data=request.data, partial=True)
+        serializer = UpdateProfileAvatarSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return success(data=serializer.data, message="Profile avatar update successfully.", status_code=status.HTTP_200_OK)
-        return error(message="Profile avatar update failed.", status_code=status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
+            avatar_url = serializer.data.get('avatar')
+            return success(data=avatar_url, message="Profile avatar update successfully.")
+        return error(message="Profile avatar update failed.", errors=serializer.errors)
 
 # Profile Update
 class UpdateProfileView(APIView):
@@ -199,8 +176,8 @@ class UpdateProfileView(APIView):
         serializer = UserProfileSerializer(userProfile, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return success(data=serializer.data, message="Profile update successfully.", status_code=status.HTTP_200_OK)
-        return error(message="Profile update failed.", status_code=status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
+            return success(data=serializer.data, message="Profile update successfully.")
+        return error(message="Profile update failed.", errors=serializer.errors)
 
 # Profile Get
 class ProfileGet(APIView):
@@ -212,20 +189,10 @@ class ProfileGet(APIView):
         try:
             profile = UserProfile.objects.select_related('user').get(user=user)
         except UserProfile.DoesNotExist:
-            return Response({
-                "status": 400,
-                "success": False,
-                "message": "User not found.",
-                "data": {},
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return error(message="User not found.")
+        
         serializer = UserProfileGetSerializer(profile)
-
-        return Response({
-            "status": 200,
-            "success": True,
-            "message": "Profile fetched successfully.",
-            "data": serializer.data,
-        })  
+        return success(data=serializer.data, message="Profile fetched successfully.")
 
 # Hybrid Token Refresh View
 class CookieTokenRefreshView(TokenRefreshView):
