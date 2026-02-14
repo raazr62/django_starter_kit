@@ -95,7 +95,7 @@ class GoogleLoginView(APIView):
             )
             
             # Update profile if name changed
-            if not profile_created and (profile.first_name != first_name or profile.last_name != last_name):
+            if not profile_created:
                 profile.first_name = first_name
                 profile.last_name = last_name
                 profile.save(update_fields=["first_name", "last_name"])
