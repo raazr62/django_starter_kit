@@ -226,12 +226,10 @@ class SignInSerializer(serializers.Serializer):
         user = self.user
         request = self.context.get('request')
 
-        remember_me = self.validated_data.get("remember_me", False)
         user_agent_hash = get_user_agent_hash(request) if request else None
 
         refresh = CustomRefreshToken.for_user(
             user,
-            remember_me=remember_me,
             user_agent_hash=user_agent_hash
         )
 
@@ -244,7 +242,6 @@ class SignInSerializer(serializers.Serializer):
             },
             'refresh': str(refresh),
             'access': str(refresh.access_token),
-            'remember_me': remember_me
         }
 
 # SignOut
