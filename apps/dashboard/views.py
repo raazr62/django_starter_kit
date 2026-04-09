@@ -9,9 +9,9 @@ def dashboard_callback(request, context):
     now = timezone.now()
 
     start_of_month = now.replace(day=1)
-    total_subscribers = 20
-    total_new_subscriptions = 5
-    total_income = 1000
+    total_subscribers = 0
+    total_new_subscriptions = 0
+    total_income = 0
 
     if now.month == 12:
         start_of_next_month = now.replace(year=now.year + 1, month=1, day=1)
