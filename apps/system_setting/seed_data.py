@@ -6,7 +6,7 @@ def seed_system_setting():
         "name": "Enter you application name",
         "title": "Your Title",
         "email": "your_email@example.com",
-        "copyright": "© 2023 Enter you application name",
+        "copyright": "©2026 Enter you application name",
         "logo": "system_setting/logo/1.png",
         "favicon": "system_setting/favicon/1.png",
         "description": "Your description here.",
