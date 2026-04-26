@@ -49,8 +49,28 @@ command: python manage.py seed
 8. Start Redis server
 Make sure Redis is installed and running:
 
-redis-server
-8. Run Celery worker (for async tasks)
+### Install Redis (Message Broker)
+
+**Windows:**
+
+1. Download Redis from: https://github.com/microsoftarchive/redis/releases
+2. Or use Docker: `docker run -d -p 6379:6379 redis:alpine`
+3. Or use WSL: `sudo apt install redis-server && redis-server`
+
+**Mac:**
+
+```bash
+brew install redis
+brew services start redis
+```
+
+**Linux:**
+
+```bash
+sudo apt install redis-server
+sudo systemctl start redis
+```
+
 
 Used for background tasks like email sending:
 command: celery -A project worker --loglevel=info --pool=solo
