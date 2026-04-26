@@ -110,6 +110,7 @@ celery -A project worker --loglevel=info --pool=solo
 - Customize Admin Dashboard
 - Contact Us section
 - Terms and Privacy section
+- Ready mande Postmant collection
 - System seeding support
 - Redis integration
 - Celery async task processing
