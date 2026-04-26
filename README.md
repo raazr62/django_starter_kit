@@ -103,6 +103,7 @@ celery -A project worker --loglevel=info --pool=solo
 
 ✉️ Features
 - Django base setup
+- Authentication
 - Email template ready, architecture including OTP template
 - Complete CMS
 - In APP notification & Push Notification
