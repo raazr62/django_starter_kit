@@ -1,39 +1,60 @@
-Django Starter Kit 🚀
+ # Django Starter Kit 🚀
 
 A ready-to-use Django starter kit with system seeding, Redis, and Celery support for async tasks (like email templates).
 
-📦 Installation Guide
+## 📦 Installation Guide
 
-1. Clone the repository: 
-command: git clone https://github.com/raazr62/django_starter_kit.git
+### 1. Clone the repository: 
 
-command: cd django_starter_kit
+```bash
+git clone https://github.com/raazr62/django_starter_kit.git
+cd django_starter_kit
+```
 
-3. Create virtual environment: 
+### 2. Create virtual environment: 
 
-command: python -m venv venv
+```bash
+python -m venv venv
+```
 
-Firsy you need to Activate it:
+#### Firsy you need to Activate it:
 
-Windows:
-command: venv\Scripts\activate
+##### Windows:
+```bash
+venv\Scripts\activate
+```
 
-Windows Powershell:
-command: .\venv\Scripts\Activate.ps1
+##### Windows Powershell:
 
-Windows CMD:
-command: venv\Scripts\activate.bat
+```bash
+.\venv\Scripts\Activate.ps1
+```
 
-Mac/Linux
-command: source venv/bin/activate
+##### Windows CMD:
 
-3. Install dependencies
-command: pip install -r requirements.txt
+```bash
+venv\Scripts\activate.bat
+```
 
-5. Run database migrations: 
-command: python manage.py migrate
+##### Mac/Linux
 
-7. Configure system seed data
+```bash
+source venv/bin/activate
+```
+
+### 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Run database migrations: 
+
+```bash
+python manage.py migrate
+```
+
+### 5. Configure system seed data
 
 Edit the seed configuration according to your project:
 
@@ -43,10 +64,12 @@ Update:
 def seed_system_setting():
     ...
     
-6. Seed initial data
+### 6. Seed initial data
+```bash
 command: python manage.py seed
+```
 
-8. Start Redis server
+### 7. Start Redis server
 Make sure Redis is installed and running:
 
 ### Install Redis (Message Broker)
@@ -73,14 +96,23 @@ sudo systemctl start redis
 
 
 Used for background tasks like email sending:
-command: celery -A project worker --loglevel=info --pool=solo
+
+```bash
+celery -A project worker --loglevel=info --pool=solo
+```
 
 ✉️ Features
-Django base setup
-System seeding support
-Redis integration
-Celery async task processing
-Email template ready architecture
+- Django base setup
+- Email template ready, architecture including OTP template
+- Complete CMS
+- In APP notification & Push Notification
+- Stripe Subscription with admin dashboard refund approval
+- Customize Admin Dashboard
+- Contact Us section
+- Terms and Privacy section
+- System seeding support
+- Redis integration
+- Celery async task processing
 
 ⚙️ Notes
 - Ensure Redis is running before starting Celery
