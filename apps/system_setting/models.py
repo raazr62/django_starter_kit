@@ -14,6 +14,11 @@ class AboutSystem(models.Model):
     def __str__(self):
         return self.title
 
+    def get_absolute_logo_url(self):
+        if self.logo:
+            return self.logo.url
+        return ""
+
 class DynamicPages(models.Model):
     title = models.CharField(max_length=255)
     content = models.TextField()

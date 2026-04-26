@@ -1,5 +1,5 @@
 
-from apps.system_setting.models import AboutSystem
+from apps.system_setting.models import AboutSystem, SystemColor
 from .models import User, UserProfile, OTP
 from rest_framework import  serializers
 from django.core.exceptions import ValidationError
@@ -14,6 +14,26 @@ from apps.utils.helpers import success, error
 from apps.utils.tasks import send_email_task
 from django.template.loader import render_to_string
 from .utils import get_user_agent_hash, get_cloudinary_url
+
+
+def _build_email_template_context(extra_context=None):
+    system_info = AboutSystem.objects.first()
+    system_color = (
+        SystemColor.objects.filter(is_active=True)
+        .values_list('code', flat=True)
+        .first()
+        or '#204452'
+    )
+
+    context = {
+        'system_info': system_info,
+        'system_color': system_color,
+    }
+
+    if extra_context:
+        context.update(extra_context)
+
+    return context
 
 class CustomRefreshToken(RefreshToken):
 
@@ -162,10 +182,9 @@ class SignUpSerializer(serializers.ModelSerializer):
             }
         )
 
-        system_info = AboutSystem.objects.first()
         html_content = render_to_string(
             'email/signup_otp_verification_template.html',
-            {'otp_code': otp_code, 'system_info': system_info}
+            _build_email_template_context({'otp_code': otp_code})
         )
 
         send_email_task.delay(
@@ -323,8 +342,10 @@ class SendOTPSerializer(serializers.Serializer):
 
         OTP.objects.update_or_create(user=user, defaults={'otp': otp_hashed, 'is_verify': False, 'purpose': purpose, 'created_at': timezone.now(), 'expires_at': expires_at})
         
-        system_info = AboutSystem.objects.first()
-        html_content = render_to_string('email/forgetpass_otp_verification_template.html', {'otp_code': otp_code, 'system_info': system_info})
+        html_content = render_to_string(
+            'email/forgetpass_otp_verification_template.html',
+            _build_email_template_context({'otp_code': otp_code})
+        )
 
         try:
           send_email_task.delay(
@@ -412,8 +433,10 @@ class ResendOTPSerializer(serializers.Serializer):
 
         OTP.objects.update_or_create(user=user, defaults={'otp': otp_hashed, 'is_verify': False, 'purpose': purpose, 'created_at': timezone.now(), 'expires_at': expires_at})
 
-        system_info = AboutSystem.objects.first()
-        html_content = render_to_string('email/forgetpass_otp_verification_template.html', {'otp_code': otp_code, 'system_info': system_info})
+        html_content = render_to_string(
+            'email/forgetpass_otp_verification_template.html',
+            _build_email_template_context({'otp_code': otp_code})
+        )
 
         try:
           send_email_task.delay(
