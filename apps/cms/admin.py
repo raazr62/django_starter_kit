@@ -16,7 +16,7 @@ from .models import (
     AboutItem, AboutHeroSection, AboutMissionSection, AboutCompanySection, 
     AboutTransformSection, AboutContactSection, AboutContactSubmission, 
     # pricing
-    PricingHeroSection, PlanItem, Features, ResearchSection, ResearchItem, FeeSection,
+    ResearchSection, ResearchItem, FeeSection,
     FeeItems, 
     # Term & Policy
     TermSection, PolicySection, 
@@ -224,13 +224,6 @@ class AboutCompanySectionAdmin(ModelAdmin):
 # About Transform Section
 admin.site.register(AboutTransformSection)
 
-# Pricing Hero Section
-class FeaturesInline(nested_admin.NestedTabularInline):
-    model = Features
-    extra = 1
-    fields = ('text', 'include', 'order')
-    ordering = ('order',)
-
 # About Contact Section
 @admin.register(AboutContactSection)
 class AboutContactSectionAdmin(ModelAdmin):
@@ -239,36 +232,6 @@ class AboutContactSectionAdmin(ModelAdmin):
     ordering = ('id',)
 
 admin.site.register(AboutContactSubmission)
-
-# Pricing Hero Section
-class PlanItemInline(nested_admin.NestedTabularInline):
-    model = PlanItem
-    extra = 1
-    fields = ('billing_cycle', 'name', 'price', 'is_active')
-    inlines = [FeaturesInline]
-    show_change_link = True
-
-@admin.register(PricingHeroSection)
-class PricingAdmin(nested_admin.NestedModelAdmin):
-    list_display = ('id', 'title', 'created_at', 'updated_at')
-    inlines = [PlanItemInline]
-    search_fields = ('title',)
-    ordering = ('id',)
-
-@admin.register(PlanItem)
-class PlanItemAdmin(ModelAdmin):
-    list_display = ('id', 'name', 'billing_cycle', 'price', 'is_active', 'created_at')
-    list_filter = ('billing_cycle', 'is_active')
-    search_fields = ('name',)
-    inlines = [FeaturesInline]
-    ordering = ('id',)
-
-@admin.register(Features)
-class FeaturesAdmin(ModelAdmin):
-    list_display = ('id', 'planitem', 'text', 'include', 'order')
-    list_filter = ('include',)
-    search_fields = ('text', 'planitem__name')
-    ordering = ('order',)
 
 # Research Section
 class ResearchItemInline(TabularInline):

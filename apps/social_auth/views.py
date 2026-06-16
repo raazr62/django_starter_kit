@@ -102,15 +102,21 @@ class GoogleLoginView(APIView):
         # Issue JWT (SimpleJWT)
         refresh_token = RefreshToken.for_user(user)
 
-        return Response({
-            "status": "success",
-            "message": "Signin successful.",
-            "data": {
-                'id': user.id,
-                'email': user.email,
-                'avatar': user.avatar.url if user.avatar else None,
-                'role': user.role,
+        return Response(
+            {
+                "status": 200,
+                "success": True,
+                "message": "Login successful.",
+                "data": {
+                    "user": {
+                        "id": user.id,
+                        "email": user.email,
+                        "avatar": user.avatar.url if user.avatar else None,
+                        "role": user.role,
+                    },
+                    "refresh": str(refresh_token),
+                    "access": str(refresh_token.access_token),
+                },
             },
-            "refresh": str(refresh_token),
-            "access": str(refresh_token.access_token),
-        }, status=status.HTTP_200_OK)
+            status=status.HTTP_200_OK
+        )
