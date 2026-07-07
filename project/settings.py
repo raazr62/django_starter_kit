@@ -47,8 +47,6 @@ if DEBUG:
         'https://localhost',
         'https://127.0.0.1',
         'http://127.0.0.1:5500',
-        'https://cmetayer1980.softvencealpha.com',  
-        'https://www.cmetayer1980.softvencealpha.com',
     ]
 
 else:
@@ -61,8 +59,6 @@ else:
     CORS_ALLOW_ALL_ORIGINS = False 
     CORS_ALLOW_CREDENTIALS = True
     CSRF_TRUSTED_ORIGINS = [
-        'https://cmetayer1980.softvencealpha.com',  
-        'https://www.cmetayer1980.softvencealpha.com',
     ]
 
 
